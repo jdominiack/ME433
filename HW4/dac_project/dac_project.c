@@ -11,7 +11,14 @@
 #define PIN_CS   17
 #define PIN_SCK  18
 #define PIN_MOSI 19
-#define VREF 2.7 // V
+#define VREF 3.3 // V
+#define TMAX 1000.0 // 6666
+
+
+void writeDac(int channel, float voltage);
+
+static inline void cs_select(uint pin);
+static inline void cs_deselect(uint pin);
 
 int main()
 {
@@ -30,41 +37,57 @@ int main()
 
     float v;
     float f = 2; //Hz
+    float t = 0;
     // For more examples of SPI use see https://github.com/raspberrypi/pico-examples/tree/master/spi
 
     while (true) {
-        float t = 0;
-
-        for (int i = 0; i < 100; i++){
-            sleep_ms(10);
-            t += 0.01;
-
-            //Square wave (2Hz):
-            v = VREF * sin(2*(3.14)*f*t); 
-
-            //Triangle wave (1Hz):
-            //v = VREF * t;
-
-            writeDac(0, v);
+        sleep_ms(1);
+        t += 1;
+        if (t > TMAX){
+            t = 0;
         }
+
+        //sine wave (2Hz):
+        v = VREF/2 * sin(4*(3.14)*f*t) + VREF/2; 
+
+        //Triangle wave (1Hz):
+        // if (t < TMAX/2){
+        //     v = ((float)(t/TMAX) * VREF * 2);
+        // }
+        // else if (t >= TMAX/2){
+        //     v = (2 * VREF * (1-(float)(t/TMAX)));
+        // }
+
+        writeDac(0,v);
     }
 }
 
 //channel is 1 or 0 that represents channel A or B
 void writeDac(int channel, float voltage){
     uint8_t data[2];
-    uint16_t v = voltage * 1024 / VREF;
+    uint16_t v = (uint16_t)(voltage * 1024.0 / VREF);
     int len = 2;
     data[0] = 0b01110000;
-    data[0] = data[0] | (channel<<7);
-    data[0] = data[0] | (v >> 4);
+    data[0] = data[0] | (channel << 7);
+    data[0] = data[0] | (uint8_t)((v >> 6) & 0xF); 
 
     data[1] = 0b00000000;
-    data[1] = data[1] | (v << 4);
-
+    data[1] = data[1] | (uint8_t)((v << 2) & 0x00FF); 
     cs_select(PIN_CS);
     spi_write_blocking(SPI_PORT, data, len);
     cs_deselect(PIN_CS);
+}
+
+static inline void cs_select(uint cs_pin) {
+    asm volatile("nop \n nop \n nop"); // FIXME
+    gpio_put(cs_pin, 0);
+    asm volatile("nop \n nop \n nop"); // FIXME
+}
+
+static inline void cs_deselect(uint cs_pin) {
+    asm volatile("nop \n nop \n nop"); // FIXME
+    gpio_put(cs_pin, 1);
+    asm volatile("nop \n nop \n nop"); // FIXME
 }
 
 
