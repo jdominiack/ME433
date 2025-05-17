@@ -8,12 +8,13 @@
 #define I2C_PORT i2c0
 #define I2C_SDA 8
 #define I2C_SCL 9
-#define READ_ADDR 0b01000001
-#define WR_ADDR 0b01000000
+#define READ_ADDR 0b0100000
+#define WR_ADDR 0b0100000
 #define GPIO_REG 0b00001001
 #define OLAT_REG 0b00001010
 #define IODIR_REG 0b00000000
 
+void expander_init();
 void setPin(unsigned char address, unsigned char reg, unsigned char value);
 unsigned char readPin(unsigned char address, unsigned char reg);
 int pico_led_init(void);
@@ -46,7 +47,7 @@ int main()
 
         if (!(IOstates & 0b1)){
             //set GP0 high (turn on LED)
-            setPin(WR_ADDR, OLAT_REG, 0b00000001);
+            setPin(WR_ADDR, OLAT_REG, 0b10000000);
         }
         else {
             //set GP0 low (turn off LED)

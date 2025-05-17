@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <math.h>
 #include "pico/stdlib.h"
 #include "hardware/spi.h"
 
@@ -16,6 +17,11 @@
 
 static inline void cs_select(uint cs_pin);
 static inline void cs_deselect(uint cs_pin);
+void writeDac(int channel, float voltage);
+float spi_ram_read(uint16_t address);
+void spi_ram_write(uint16_t addr, float v);
+void spi_ram_init();
+void my_spi_init();
 
 union FloatInt {
     float f;
@@ -25,7 +31,8 @@ union FloatInt {
 int main()
 {
     stdio_init_all();
-    spi_init();
+    my_spi_init();
+    spi_ram_init();
 
     volatile float f1, f2;
 
@@ -86,24 +93,28 @@ int main()
     printf("Division Cycles: %d \n\r", divClocks);
 
     float v;
+    uint16_t addrCount = 0;
 
     //RAM Stuff
-    for (int i = 0; i < 1000; i++){
+    for (uint16_t i = 0; i < 1000; i++){
         //calculate sine
         v = VREF/2 * sin(4*(3.14)*i) + VREF/2;
+        //printf("%f\n\r", v);
 
         //write v to ram
-        spi_ram_write(i, v);
+        spi_ram_write(addrCount, v);
+        addrCount += 4;
     }
 
-    int addrCount = 0;
+    addrCount = 0;
     while (true) {
         v = spi_ram_read(addrCount);
+        printf("%f at %d\n\r", v, addrCount);
         writeDac(0, v);
 
-        addrCount += 1;
+        addrCount += 4;
 
-        if (addrCount > 999){
+        if (addrCount > 3999){
             addrCount = 0;
         }
 
@@ -124,7 +135,7 @@ static inline void cs_deselect(uint cs_pin) {
     asm volatile("nop \n nop \n nop"); // FIXME
 }
 
-void spi_init(){
+void my_spi_init(){
     //SPI initialisation. This example will use SPI at 1MHz.
     spi_init(SPI_PORT, 1000*1000);
     gpio_set_function(PIN_MISO, GPIO_FUNC_SPI);
@@ -143,7 +154,7 @@ void spi_init(){
 
 void spi_ram_init(){
     uint8_t buf[2];
-    buf[0] = 0b1;
+    buf[0] = 0b00000001;
     buf[1] = 0b01000000; // seq mode
 
     cs_select(RAM_CS);
@@ -154,7 +165,7 @@ void spi_ram_init(){
 void spi_ram_write(uint16_t addr, float v){
     uint8_t buf[7];
     buf[0] = 0b00000010;
-    buf[1] = addr>>8;
+    buf[1] = (addr>>8)&0xFF;
     buf[2] = addr&0xFF;
 
     union FloatInt num;
@@ -172,20 +183,22 @@ void spi_ram_write(uint16_t addr, float v){
 }
 
 float spi_ram_read(uint16_t address){
-    uint8_t write[7], read[7];
+    uint8_t write[3], read[4];
     write[0] = 0b00000011;
     write[1] = (address>>8) & 0xFF;
     write[2] = address & 0xFF;
 
     cs_select(RAM_CS);
-    spi_write_read_blocking(spi_default, write, read, 7);
+    //spi_write_read_blocking(spi_default, write, read, 7);
+    spi_write_blocking(spi_default, write, 3);
+    spi_read_blocking(spi_default, 0x00, read, 4);
     cs_deselect(RAM_CS);
 
     union FloatInt num;
-    num.i = ((uint32_t)read[3] << 24) |
-            ((uint32_t)read[4] << 16) |
-            ((uint32_t)read[5] << 8)  |
-            ((uint32_t)read[6]);
+    num.i = ((uint32_t)read[0] << 24) |
+            ((uint32_t)read[1] << 16) |
+            ((uint32_t)read[2] << 8)  |
+            ((uint32_t)read[3]);
 
     return num.f;
 }
