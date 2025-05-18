@@ -42,7 +42,7 @@ pico_set_program_version(I2C_OLED_Project "0.1")
 
 # Modify the below lines to enable/disable output over UART/USB
 pico_enable_stdio_uart(I2C_OLED_Project 0)
-pico_enable_stdio_usb(I2C_OLED_Project 0)
+pico_enable_stdio_usb(I2C_OLED_Project 1)
 
 # Add the standard library to the build
 target_link_libraries(I2C_OLED_Project
@@ -55,7 +55,7 @@ target_include_directories(I2C_OLED_Project PRIVATE
 
 # Add any user requested libraries
 target_link_libraries(I2C_OLED_Project 
-        hardware_i2c
+        hardware_i2c hardware_adc
         )
 
 pico_add_extra_outputs(I2C_OLED_Project)
