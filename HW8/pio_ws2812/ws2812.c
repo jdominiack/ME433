@@ -32,7 +32,7 @@
 #define WS2812_PIN PICO_DEFAULT_WS2812_PIN
 #else
 // default to pin 2 if the board doesn't have a default WS2812 pin defined
-#define WS2812_PIN 2
+#define WS2812_PIN 14
 #endif
 
 // Check the pin is compatible with the platform
@@ -65,48 +65,12 @@ static inline uint32_t urgbw_u32(uint8_t r, uint8_t g, uint8_t b, uint8_t w) {
             (uint32_t) (b);
 }
 
-void color_set(PIO pio, uint sm, wsColor colors){
+void color_set(PIO pio, uint sm, wsColor colors[]){
+    
     for(int i=0;i<NUM_PIXELS;i++){
-        put_pixel(pio, sm, urgb_u32(r[i], g[i], b[i])); // assuming you've made arrays of colors to send
+        put_pixel(pio, sm, urgb_u32(colors[i].r, colors[i].g, colors[i].b)); // assuming you've made arrays of colors to send
     }
     sleep_ms(1);
-}
-
-void pattern_snakes(PIO pio, uint sm, uint len, uint t) {
-    for (uint i = 0; i < len; ++i) {
-        uint x = (i + (t >> 1)) % 64;
-        if (x < 10)
-            put_pixel(pio, sm, urgb_u32(0xff, 0, 0));
-        else if (x >= 15 && x < 25)
-            put_pixel(pio, sm, urgb_u32(0, 0xff, 0));
-        else if (x >= 30 && x < 40)
-            put_pixel(pio, sm, urgb_u32(0, 0, 0xff));
-        else
-            put_pixel(pio, sm, 0);
-    }
-}
-
-void pattern_random(PIO pio, uint sm, uint len, uint t) {
-    if (t % 8)
-        return;
-    for (uint i = 0; i < len; ++i)
-        put_pixel(pio, sm, rand());
-}
-
-void pattern_sparkle(PIO pio, uint sm, uint len, uint t) {
-    if (t % 8)
-        return;
-    for (uint i = 0; i < len; ++i)
-        put_pixel(pio, sm, rand() % 16 ? 0 : 0xffffffff);
-}
-
-void pattern_greys(PIO pio, uint sm, uint len, uint t) {
-    uint max = 100; // let's not draw too much current!
-    t %= max;
-    for (uint i = 0; i < len; ++i) {
-        put_pixel(pio, sm, t * 0x10101);
-        if (++t >= max) t = 0;
-    }
 }
 
 typedef void (*pattern)(PIO pio, uint sm, uint len, uint t);
