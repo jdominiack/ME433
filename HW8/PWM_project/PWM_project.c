@@ -7,7 +7,7 @@
 #define WRAP 30000
 
 void PWM_init();
-void set_angle(int angle);
+void set_angle(float angle);
 
 
 int main()
@@ -23,32 +23,33 @@ int main()
 
 
     while (true) {
-        set_angle(120);
+        // pwm_set_gpio_level(SERVO_PIN, (uint16_t)(WRAP * 0.05));
+        // set_angle(90);
 
-        sleep_ms(1000);
+        // sleep_ms(1000);
 
-        set_angle(180);
+        // pwm_set_gpio_level(SERVO_PIN, (uint16_t)(WRAP * 0.06));
+        // set_angle(100);
 
-        sleep_ms(1000);
+        // sleep_ms(1000);
 
-        // if (incline){
-        //     servoAngle += 10;
-        //     if (servoAngle > 180){
-        //         incline = false;
-        //         servoAngle -= 20;
-        //     }
-        // }
-        // else {
-        //     servoAngle -= 10;
-        //     if (servoAngle < 0){
-        //         incline = true;
-        //         servoAngle += 20;
-        //     }
-        // }  
-
-
+        if (incline){
+            servoAngle += 10;
+            if (servoAngle > 180){
+                incline = false;
+                servoAngle -= 20;
+            }
+        }
+        else {
+            servoAngle -= 10;
+            if (servoAngle < 0){
+                incline = true;
+                servoAngle += 20;
+            }
+        }
         
-        
+        set_angle(servoAngle);
+        sleep_ms(300);
     }
 }
 
@@ -62,8 +63,8 @@ void PWM_init(){
     pwm_set_gpio_level(SERVO_PIN, (uint16_t)WRAP * 0.025); // set the duty cycle to 50%
 }
 
-void set_angle(int angle){
-    if (angle <= 180 & angle >= 0){
+void set_angle(float angle){
+    if (angle <= 180 && angle >= 0){
         float duty_cycle = ((angle/180) * (0.125 - 0.025)) + 0.025;
 
         uint16_t wrap = 1000;
